@@ -107,10 +107,14 @@ pytest -v --cov=functions --cov-report=term-missing
 
 ### IAMロールの作成（OIDC）
 
-```bash
-# AWS CLIでOIDCプロバイダーとロールを作成
-# 詳細はAWS公式ドキュメントを参照
-```
+詳細な手順は `docs/aws-iam-setup.md` を参照してください。
+
+**簡単な手順：**
+1. AWSコンソール → IAM → IDプロバイダー → プロバイダーを追加
+2. OpenID Connect、URL: `https://token.actions.githubusercontent.com`
+3. IAMロール作成（信頼ポリシーでGitHubリポジトリを指定）
+4. 必要な権限をロールに付与
+5. ロールのARNをGitHub Secretsに設定
 
 ## 開発フロー
 
