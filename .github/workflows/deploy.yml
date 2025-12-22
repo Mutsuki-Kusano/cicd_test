@@ -99,6 +99,17 @@ jobs:
       - name: Install CDK
         run: npm install -g aws-cdk
 
+      - name: CDK Bootstrap (if needed)
+        run: |
+          echo "Checking CDK bootstrap status..."
+          cdk bootstrap aws://289923153705/ap-northeast-1 --verbose || echo "Bootstrap may already exist"
+        continue-on-error: true
+        env:
+          CDK_CLI_TELEMETRY: false
+          AWS_DEFAULT_REGION: ap-northeast-1
+          CDK_DEFAULT_ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
+          CDK_DEFAULT_REGION: ap-northeast-1
+
       - name: CDK Acknowledge and Deploy
         run: |
           echo "Starting CDK operations..."
@@ -113,3 +124,7 @@ jobs:
           cdk deploy --require-approval never --verbose
         env:
           CDK_CLI_TELEMETRY: false
+          AWS_DEFAULT_REGION: ap-northeast-1
+          AWS_REGION: ap-northeast-1
+          CDK_DEFAULT_ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
+          CDK_DEFAULT_REGION: ap-northeast-1
