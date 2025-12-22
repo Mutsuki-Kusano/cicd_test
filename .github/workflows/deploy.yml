@@ -58,7 +58,7 @@ jobs:
 
       - name: Get AWS Account ID and set environment
         run: |
-          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --profile pfdev --query Account --output text)
           echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
           echo "CDK_DEFAULT_ACCOUNT=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
           echo "CDK_DEFAULT_REGION=ap-northeast-1" >> $GITHUB_ENV
