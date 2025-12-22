@@ -64,6 +64,11 @@ jobs:
           echo "CDK_DEFAULT_REGION=ap-northeast-1" >> $GITHUB_ENV
           echo "AWS_DEFAULT_REGION=ap-northeast-1" >> $GITHUB_ENV
           echo "Retrieved AWS Account ID: $AWS_ACCOUNT_ID"
+          
+          # 環境変数をファイルにも保存
+          echo "export CDK_DEFAULT_ACCOUNT=$AWS_ACCOUNT_ID" > ~/.aws_env
+          echo "export CDK_DEFAULT_REGION=ap-northeast-1" >> ~/.aws_env
+          echo "export AWS_DEFAULT_REGION=ap-northeast-1" >> ~/.aws_env
 
       - name: Verify AWS credentials
         run: |
@@ -78,31 +83,23 @@ jobs:
 
       - name: Install CDK
         run: npm install -g aws-cdk
-        env:
-          AWS_DEFAULT_REGION: ap-northeast-1
-
-      - name: CDK Bootstrap (if needed)
-        run: |
-          echo "Checking if CDK bootstrap is needed..."
-          echo "CDK_DEFAULT_ACCOUNT: $CDK_DEFAULT_ACCOUNT"
-          echo "AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION"
-          cdk bootstrap aws://$CDK_DEFAULT_ACCOUNT/ap-northeast-1 || echo "Bootstrap already exists or failed"
-        continue-on-error: true
-        env:
-          AWS_DEFAULT_REGION: ap-northeast-1
-          CDK_DEFAULT_REGION: ap-northeast-1
 
       - name: CDK Deploy
         run: |
           echo "Starting CDK deployment..."
           echo "Current working directory: $(pwd)"
+          
+          # 環境変数を再設定
+          source ~/.aws_env || true
+          export CDK_DEFAULT_ACCOUNT=$CDK_DEFAULT_ACCOUNT
+          export CDK_DEFAULT_REGION=ap-northeast-1
+          export AWS_DEFAULT_REGION=ap-northeast-1
+          
           echo "CDK_DEFAULT_ACCOUNT: $CDK_DEFAULT_ACCOUNT"
           echo "AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION"
           echo "AWS Identity: $(aws sts get-caller-identity)"
+          
           cdk acknowledge 34892
-          cdk deploy --require-approval never --verbose
+          CDK_DEFAULT_ACCOUNT=$CDK_DEFAULT_ACCOUNT CDK_DEFAULT_REGION=ap-northeast-1 cdk deploy --require-approval never --verbose
         env:
           CDK_CLI_TELEMETRY: false
-          AWS_DEFAULT_REGION: ap-northeast-1
-          AWS_REGION: ap-northeast-1
-          CDK_DEFAULT_REGION: ap-northeast-1
