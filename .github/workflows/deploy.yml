@@ -81,17 +81,35 @@ jobs:
           AWS_DEFAULT_REGION: ap-northeast-1
           CDK_DEFAULT_REGION: ap-northeast-1
 
+      - name: Set CDK environment variables
+        run: |
+          echo "CDK_DEFAULT_ACCOUNT=${{ secrets.AWS_ACCOUNT_ID }}" >> $GITHUB_ENV
+          echo "CDK_DEFAULT_REGION=ap-northeast-1" >> $GITHUB_ENV
+          echo "AWS_DEFAULT_REGION=ap-northeast-1" >> $GITHUB_ENV
+          echo "Set CDK_DEFAULT_ACCOUNT to: ${{ secrets.AWS_ACCOUNT_ID }}"
+
+      - name: Debug environment variables
+        run: |
+          echo "Checking environment variables:"
+          echo "CDK_DEFAULT_ACCOUNT: $CDK_DEFAULT_ACCOUNT"
+          echo "CDK_DEFAULT_REGION: $CDK_DEFAULT_REGION"
+          echo "AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION"
+          echo "Secret value length: ${#CDK_DEFAULT_ACCOUNT}"
+
       - name: Install CDK
         run: npm install -g aws-cdk
 
-      - name: CDK Deploy
+      - name: CDK Acknowledge and Deploy
         run: |
-          echo "Starting CDK deployment..."
+          echo "Starting CDK operations..."
+          echo "CDK_DEFAULT_ACCOUNT: $CDK_DEFAULT_ACCOUNT"
+          echo "CDK_DEFAULT_REGION: $CDK_DEFAULT_REGION"
           echo "AWS Identity: $(aws sts get-caller-identity)"
+          
+          # テレメトリを無効化
           cdk acknowledge 34892
+          
+          # デプロイ実行
           cdk deploy --require-approval never --verbose
         env:
           CDK_CLI_TELEMETRY: false
-          CDK_DEFAULT_ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
-          CDK_DEFAULT_REGION: "ap-northeast-1"
-          AWS_DEFAULT_REGION: "ap-northeast-1"
