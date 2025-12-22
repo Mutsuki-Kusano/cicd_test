@@ -56,19 +56,14 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ap-northeast-1
 
-      - name: Set CDK environment variables
+      - name: Get AWS Account ID and set environment
         run: |
-          echo "CDK_DEFAULT_ACCOUNT=${{ secrets.AWS_ACCOUNT_ID }}" >> $GITHUB_ENV
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "AWS_ACCOUNT_ID=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          echo "CDK_DEFAULT_ACCOUNT=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
           echo "CDK_DEFAULT_REGION=ap-northeast-1" >> $GITHUB_ENV
-          echo "AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }}" >> $GITHUB_ENV
           echo "AWS_DEFAULT_REGION=ap-northeast-1" >> $GITHUB_ENV
-
-      - name: Debug environment variables
-        run: |
-          echo "CDK_DEFAULT_ACCOUNT: $CDK_DEFAULT_ACCOUNT"
-          echo "AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID"
-          echo "AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION"
-          echo "Secrets AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}"
+          echo "Retrieved AWS Account ID: $AWS_ACCOUNT_ID"
 
       - name: Install CDK
         run: npm install -g aws-cdk
