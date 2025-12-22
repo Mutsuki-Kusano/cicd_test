@@ -65,12 +65,34 @@ jobs:
           echo "AWS_DEFAULT_REGION=ap-northeast-1" >> $GITHUB_ENV
           echo "Retrieved AWS Account ID: $AWS_ACCOUNT_ID"
 
+      - name: Verify AWS credentials
+        run: |
+          echo "Current AWS identity:"
+          aws sts get-caller-identity
+          echo "Environment variables:"
+          echo "AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION"
+          echo "CDK_DEFAULT_ACCOUNT: $CDK_DEFAULT_ACCOUNT"
+
       - name: Install CDK
         run: npm install -g aws-cdk
 
+      - name: CDK Bootstrap (if needed)
+        run: |
+          echo "Checking if CDK bootstrap is needed..."
+          cdk bootstrap aws://289923153705/ap-northeast-1 || echo "Bootstrap already exists or failed"
+        continue-on-error: true
+        env:
+          AWS_DEFAULT_REGION: ap-northeast-1
+
       - name: CDK Deploy
         run: |
+          echo "Starting CDK deployment..."
+          echo "Current working directory: $(pwd)"
+          echo "AWS Identity: $(aws sts get-caller-identity)"
           cdk acknowledge 34892
-          cdk deploy --require-approval never
+          cdk deploy --require-approval never --verbose
         env:
           CDK_CLI_TELEMETRY: false
+          AWS_DEFAULT_REGION: ap-northeast-1
+          AWS_REGION: ap-northeast-1
+          CDK_DEFAULT_REGION: ap-northeast-1
