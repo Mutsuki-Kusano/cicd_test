@@ -125,3 +125,4 @@ pytest -v --cov=functions --cov-report=term-missing
 5. プルリクエスト作成 → 単体テスト自動実行
 6. レビュー・承認
 7. mainブランチへマージ → 結合テスト・デプロイ自動実行
+# Test
