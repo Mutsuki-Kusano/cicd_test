@@ -3,6 +3,8 @@
 ## 概要
 API Gateway、Lambda、DynamoDBを使用したシンプルなREST APIのCDK構成です。
 
+**CI/CDパイプライン構築済み** ✅
+
 ## 前提条件
 - Python 3.8以上
 - AWS CLI設定済み
