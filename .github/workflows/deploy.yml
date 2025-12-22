@@ -87,19 +87,11 @@ jobs:
       - name: CDK Deploy
         run: |
           echo "Starting CDK deployment..."
-          echo "Current working directory: $(pwd)"
-          
-          # 環境変数を再設定
-          source ~/.aws_env || true
-          export CDK_DEFAULT_ACCOUNT=$CDK_DEFAULT_ACCOUNT
-          export CDK_DEFAULT_REGION=ap-northeast-1
-          export AWS_DEFAULT_REGION=ap-northeast-1
-          
-          echo "CDK_DEFAULT_ACCOUNT: $CDK_DEFAULT_ACCOUNT"
-          echo "AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION"
           echo "AWS Identity: $(aws sts get-caller-identity)"
-          
           cdk acknowledge 34892
-          CDK_DEFAULT_ACCOUNT=$CDK_DEFAULT_ACCOUNT CDK_DEFAULT_REGION=ap-northeast-1 cdk deploy --require-approval never --verbose
+          cdk deploy --require-approval never --verbose
         env:
           CDK_CLI_TELEMETRY: false
+          CDK_DEFAULT_ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
+          CDK_DEFAULT_REGION: "ap-northeast-1"
+          AWS_DEFAULT_REGION: "ap-northeast-1"
