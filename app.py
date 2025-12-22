@@ -5,11 +5,12 @@ from stacks.api_stack import ApiStack
 
 app = cdk.App()
 
-ApiStack(app, "ApiStack",
-    env=cdk.Environment(
-        account=os.getenv('CDK_DEFAULT_ACCOUNT'),
-        region=os.getenv('CDK_DEFAULT_REGION', 'ap-northeast-1')
-    )
+# GitHub Actions環境では環境変数から取得、ローカルでは自動取得
+env = cdk.Environment(
+    account=os.getenv('CDK_DEFAULT_ACCOUNT') or os.getenv('AWS_ACCOUNT_ID'),
+    region=os.getenv('CDK_DEFAULT_REGION', 'ap-northeast-1')
 )
+
+ApiStack(app, "ApiStack", env=env)
 
 app.synth()
