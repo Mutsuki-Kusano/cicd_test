@@ -1,6 +1,5 @@
 {
   "app": "python app.py",
-  "profile": "pfdev",
   "watch": {
     "include": ["**"],
     "exclude": [
