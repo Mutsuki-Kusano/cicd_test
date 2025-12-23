@@ -1,6 +1,1 @@
-# テスト用ファイル
-
-このファイルはCI/CDパイプラインのテスト用です。
-
-## 変更履歴
-- 初回作成: 単体テストの動作確認用
+## "Add test file for CI/CD pipeline verification-3"

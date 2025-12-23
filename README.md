@@ -60,13 +60,28 @@ feature/* → dev → v2qa → main
 
 ### チームメンバーの追加
 ワークフローファイルの以下の箇所を更新：
+
+#### レビュワー設定の注意点
+プルリクエスト作成者は自分自身にレビューを依頼できないため、ワークフローでは自動的に作成者を除外します。
+
+**個人開発の場合:**
 ```yaml
 # .github/workflows/feature-to-dev.yml
-const reviewers = ['Mutsuki-Kusano', 'member2', 'member3'];
+const allReviewers = []; // 空配列にしておく
+```
+
+**チーム開発の場合:**
+```yaml
+# .github/workflows/feature-to-dev.yml
+const allReviewers = ['alice', 'bob', 'charlie']; // 実際のGitHubユーザー名
 
 # .github/workflows/dev-to-v2qa.yml  
-const testReviewers = ['Mutsuki-Kusano', 'qa-member1'];
+const allReviewers = ['qa-member1', 'qa-member2']; // QAチームメンバー
 ```
+
+ワークフローは以下の動作をします：
+- ✅ 利用可能なレビュワーがいる場合：自動でレビュー依頼を送信
+- ⚠️ 利用可能なレビュワーがいない場合：手動指定を促すコメントを投稿
 
 ## 前提条件
 - Python 3.8以上
