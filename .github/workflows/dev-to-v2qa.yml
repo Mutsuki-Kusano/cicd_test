@@ -6,14 +6,11 @@ on:
       - v2qa
     types: [opened, synchronize, reopened]
 
-<<<<<<< HEAD
 permissions:
   contents: read
   issues: write
   pull-requests: write
 
-=======
->>>>>>> a4d63d086b19cdea4975ecba0655e1e7b11c4c96
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
@@ -106,12 +103,38 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            // テストレビュワーのリスト（実際のGitHubユーザー名に変更してください）
-            const testReviewers = ['Mutsuki-Kusano']; // QAチームメンバーを追加
+            // テストレビュワーのリスト（QAチームメンバーのGitHubユーザー名を追加してください）
+            const allReviewers = ['qa-member-1', 'qa-member-2']; // 実際のQAチームメンバーに変更
             
-            await github.rest.pulls.requestReviewers({
+            // プルリクエスト作成者を取得
+            const { data: pullRequest } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.issue.number,
-              reviewers: testReviewers
+              pull_number: context.issue.number
             });
+            
+            // 作成者以外のレビュワーをフィルタリング
+            const availableReviewers = allReviewers.filter(reviewer => reviewer !== pullRequest.user.login);
+            
+            if (availableReviewers.length > 0) {
+              await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                reviewers: availableReviewers
+              });
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `🔍 テストレビュー依頼を送信しました: @${availableReviewers.join(', @')}`
+              });
+            } else {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: '⚠️ 利用可能なテストレビュワーがいません。手動でレビュワーを指定してください。'
+              });
+            }
