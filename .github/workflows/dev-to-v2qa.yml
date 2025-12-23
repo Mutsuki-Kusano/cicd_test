@@ -125,7 +125,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 body: `✅ **結合テスト・システムテストが成功しました！**
-                
+
 **テストレビューの準備が完了しています。**
 
 ${allMentions.join(' ')} レビューをお願いします。

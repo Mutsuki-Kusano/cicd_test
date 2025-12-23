@@ -166,7 +166,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 body: `✅ **全テスト（単体・結合・システム）が成功しました！**
-                
+
 **本番デプロイの準備が完了しています。**
 
 ${allMentions.join(' ')} レビューをお願いします。
