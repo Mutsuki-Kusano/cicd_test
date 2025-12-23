@@ -9,28 +9,34 @@ from aws_cdk import (
 from constructs import Construct
 
 class ApiStack(Stack):
-    def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+    def __init__(self, scope: Construct, construct_id: str, environment: str = 'dev', **kwargs) -> None:
         super().__init__(scope, construct_id, **kwargs)
+
+        # 環境別のリソース名プレフィックス
+        env_prefix = f"{environment}-"
 
         # DynamoDBテーブル作成
         table = dynamodb.Table(
-            self, "ItemsTable",
+            self, f"{env_prefix}ItemsTable",
             partition_key=dynamodb.Attribute(
                 name="id",
                 type=dynamodb.AttributeType.STRING
             ),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
-            removal_policy=RemovalPolicy.DESTROY,  # 開発用：本番環境ではRETAINを推奨
+            removal_policy=RemovalPolicy.DESTROY if environment != 'prod' else RemovalPolicy.RETAIN,
+            table_name=f"{env_prefix}items-table"
         )
 
         # Lambda関数作成
         handler = _lambda.Function(
-            self, "ApiHandler",
+            self, f"{env_prefix}ApiHandler",
             runtime=_lambda.Runtime.PYTHON_3_12,
             code=_lambda.Code.from_asset("functions"),
             handler="handler.lambda_handler",
+            function_name=f"{env_prefix}api-handler",
             environment={
                 "TABLE_NAME": table.table_name,
+                "ENVIRONMENT": environment,
             },
         )
 
@@ -39,9 +45,9 @@ class ApiStack(Stack):
 
         # API Gateway作成
         api = apigateway.RestApi(
-            self, "ItemsApi",
-            rest_api_name="Items Service",
-            description="API for managing items",
+            self, f"{env_prefix}ItemsApi",
+            rest_api_name=f"{env_prefix}Items Service",
+            description=f"API for managing items ({environment} environment)",
         )
 
         items = api.root.add_resource("items")
@@ -55,13 +61,15 @@ class ApiStack(Stack):
 
         # 出力
         CfnOutput(
-            self, "ApiUrl",
+            self, f"{env_prefix}ApiUrl",
             value=api.url,
-            description="API Gateway URL",
+            description=f"API Gateway URL ({environment})",
+            export_name=f"{construct_id}-ApiUrl"
         )
 
         CfnOutput(
-            self, "TableName",
+            self, f"{env_prefix}TableName",
             value=table.table_name,
-            description="DynamoDB Table Name",
+            description=f"DynamoDB Table Name ({environment})",
+            export_name=f"{construct_id}-TableName"
         )
