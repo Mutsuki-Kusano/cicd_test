@@ -1,0 +1,62 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # 手動実行を許可
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+    environment: production  # GitHub Environment設定（承認必須）
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_PROD_ROLE_ARN }}
+          aws-region: ap-northeast-1
+
+      - name: Set CDK environment variables
+        run: |
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "CDK_DEFAULT_ACCOUNT=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          echo "CDK_DEFAULT_REGION=ap-northeast-1" >> $GITHUB_ENV
+          echo "Retrieved AWS Account ID: $AWS_ACCOUNT_ID"
+
+      - name: Install CDK
+        run: |
+          npm install -g aws-cdk
+
+      - name: CDK Deploy to Production
+        run: |
+          cdk acknowledge 34892
+          cdk deploy ApiStack-Prod --require-approval never --verbose
+        env:
+          CDK_CLI_TELEMETRY: false
+          ENVIRONMENT: prod
+
+      - name: Output deployment info
+        run: |
+          echo "🚀 本番環境へのデプロイが完了しました"
+          echo "環境: Production"
+          echo "アカウント: $CDK_DEFAULT_ACCOUNT"
+          echo "リージョン: ap-northeast-1"
