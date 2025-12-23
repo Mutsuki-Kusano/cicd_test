@@ -1,9 +1,9 @@
-name: Feature to Dev - Unit Tests
+name: Dev to V2QA - Integration & System Tests
 
 on:
   pull_request:
     branches:
-      - dev
+      - v2qa
     types: [opened, synchronize, reopened]
 
 permissions:
@@ -12,7 +12,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  unit-tests:
+  integration-tests:
     runs-on: ubuntu-latest
     
     steps:
@@ -28,13 +28,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-cov boto3 moto
+          pip install pytest boto3 moto
 
-      - name: Run unit tests
+      - name: Run integration tests
         run: |
-          pytest tests/unit/ -v --cov=functions --cov-report=term-missing --cov-fail-under=80
+          pytest tests/integration/ -v
 
-      - name: CDK Synth (構文チェック)
+      - name: CDK Synth validation
         run: |
           npm install -g aws-cdk
           cdk synth
@@ -42,7 +42,31 @@ jobs:
           CDK_DEFAULT_ACCOUNT: "123456789012"
           CDK_DEFAULT_REGION: ap-northeast-1
           CDK_CLI_TELEMETRY: false
-          ENVIRONMENT: dev
+          ENVIRONMENT: v2qa
+
+  system-tests:
+    needs: integration-tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest boto3 moto requests
+
+      - name: Run system tests
+        run: |
+          echo "システムテストを実行中..."
+          pytest tests/system/ -v --tb=short
 
       - name: Comment PR on success
         if: success()
@@ -53,7 +77,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ 単体テストが成功しました！コードレビューの準備ができています。'
+              body: '✅ 結合テスト・システムテストが成功しました！テストレビューの準備ができています。'
             })
 
       - name: Comment PR on failure
@@ -65,26 +89,26 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '❌ 単体テストが失敗しました。修正後に再度プッシュしてください。'
+              body: '❌ 結合テスト・システムテストが失敗しました。修正後に再度プッシュしてください。'
             })
 
   # テスト成功時のみレビュー依頼を送信
-  request-review:
-    needs: unit-tests
+  request-test-review:
+    needs: [integration-tests, system-tests]
     runs-on: ubuntu-latest
     if: success()
     
     steps:
-      - name: Request review
+      - name: Request test review
         uses: actions/github-script@v7
         with:
           script: |
-            // 利用可能なレビュワーのリスト（実際のGitHubユーザー名に変更してください）
-            const reviewers = ['Mutsuki-Kusano']; // 他のチームメンバーを追加
+            // テストレビュワーのリスト（実際のGitHubユーザー名に変更してください）
+            const testReviewers = ['Mutsuki-Kusano']; // QAチームメンバーを追加
             
             await github.rest.pulls.requestReviewers({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number,
-              reviewers: reviewers
+              reviewers: testReviewers
             });
