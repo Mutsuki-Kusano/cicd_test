@@ -1,0 +1,61 @@
+name: Deploy to V2QA Environment
+
+on:
+  push:
+    branches:
+      - v2qa
+  workflow_dispatch:  # 手動実行を許可
+
+jobs:
+  deploy-v2qa:
+    runs-on: ubuntu-latest
+    environment: v2qa  # GitHub Environment設定
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_V2QA_ROLE_ARN }}
+          aws-region: ap-northeast-1
+
+      - name: Set CDK environment variables
+        run: |
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          echo "CDK_DEFAULT_ACCOUNT=$AWS_ACCOUNT_ID" >> $GITHUB_ENV
+          echo "CDK_DEFAULT_REGION=ap-northeast-1" >> $GITHUB_ENV
+          echo "Retrieved AWS Account ID: $AWS_ACCOUNT_ID"
+
+      - name: Install CDK
+        run: npm install -g aws-cdk
+
+      - name: CDK Deploy to V2QA
+        run: |
+          cdk acknowledge 34892
+          cdk deploy ApiStack-V2QA --require-approval never --verbose
+        env:
+          CDK_CLI_TELEMETRY: false
+          ENVIRONMENT: v2qa
+
+      - name: Output deployment info
+        run: |
+          echo "🚀 V2QA環境へのデプロイが完了しました"
+          echo "環境: V2QA"
+          echo "アカウント: $CDK_DEFAULT_ACCOUNT"
+          echo "リージョン: ap-northeast-1"
