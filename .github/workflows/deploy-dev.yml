@@ -1,15 +1,18 @@
 name: Deploy to Dev Environment
 
 on:
-  push:
+  pull_request:
     branches:
       - dev
+    types: [closed]  # プルリクエストがクローズされた時のみ
   workflow_dispatch:  # 手動実行を許可
 
 jobs:
   deploy-dev:
     runs-on: ubuntu-latest
     environment: development  # GitHub Environment設定
+    # プルリクエストがマージされた場合のみ実行（直接pushは除外）
+    if: github.event.pull_request.merged == true
     
     permissions:
       id-token: write
