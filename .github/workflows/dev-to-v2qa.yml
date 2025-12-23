@@ -6,11 +6,14 @@ on:
       - v2qa
     types: [opened, synchronize, reopened]
 
+<<<<<<< HEAD
 permissions:
   contents: read
   issues: write
   pull-requests: write
 
+=======
+>>>>>>> a4d63d086b19cdea4975ecba0655e1e7b11c4c96
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
