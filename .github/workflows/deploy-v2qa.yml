@@ -1,15 +1,18 @@
 name: Deploy to V2QA Environment
 
 on:
-  push:
+  pull_request:
     branches:
       - v2qa
+    types: [closed]  # プルリクエストがクローズされた時のみ
   workflow_dispatch:  # 手動実行を許可
 
 jobs:
   deploy-v2qa:
     runs-on: ubuntu-latest
     environment: v2qa  # GitHub Environment設定
+    # プルリクエストがマージされた場合のみ実行（直接pushは除外）
+    if: github.event.pull_request.merged == true
     
     permissions:
       id-token: write
