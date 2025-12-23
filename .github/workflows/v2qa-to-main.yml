@@ -1,9 +1,9 @@
-name: Feature to Dev - Unit Tests
+name: V2QA to Main - Full Test Suite
 
 on:
   pull_request:
     branches:
-      - dev
+      - main
     types: [opened, synchronize, reopened]
 
 permissions:
@@ -34,7 +34,72 @@ jobs:
         run: |
           pytest tests/unit/ -v --cov=functions --cov-report=term-missing --cov-fail-under=80
 
-      - name: CDK Synth (構文チェック)
+  integration-tests:
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest boto3 moto
+
+      - name: Run integration tests
+        run: |
+          pytest tests/integration/ -v
+
+  system-tests:
+    needs: integration-tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest boto3 moto requests
+
+      - name: Run system tests
+        run: |
+          echo "システムテストを実行中..."
+          pytest tests/system/ -v --tb=short
+
+  cdk-validation:
+    needs: [unit-tests, integration-tests, system-tests]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: CDK Synth validation
         run: |
           npm install -g aws-cdk
           cdk synth
@@ -42,7 +107,7 @@ jobs:
           CDK_DEFAULT_ACCOUNT: "123456789012"
           CDK_DEFAULT_REGION: ap-northeast-1
           CDK_CLI_TELEMETRY: false
-          ENVIRONMENT: dev
+          ENVIRONMENT: prod
 
       - name: Comment PR on success
         if: success()
@@ -53,7 +118,7 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ 単体テストが成功しました！コードレビューの準備ができています。'
+              body: '✅ 全テスト（単体・結合・システム）が成功しました！本番デプロイの準備ができています。'
             })
 
       - name: Comment PR on failure
@@ -65,12 +130,12 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '❌ 単体テストが失敗しました。修正後に再度プッシュしてください。'
+              body: '❌ テストが失敗しました。修正後に再度プッシュしてください。'
             })
 
   # テスト成功時のみレビュー依頼を送信
-  request-review:
-    needs: unit-tests
+  request-final-review:
+    needs: [unit-tests, integration-tests, system-tests, cdk-validation]
     runs-on: ubuntu-latest
     if: success()
     
@@ -100,20 +165,22 @@ jobs:
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: `✅ **単体テストが成功しました！**
+                body: `✅ **全テスト（単体・結合・システム）が成功しました！**
 
-                **コードレビューの準備が完了しています。**
+                **本番デプロイの準備が完了しています。**
 
                 ${allMentions.join(' ')} レビューをお願いします。
 
                 **テスト結果：**
                 - ✅ 単体テスト（カバレッジ80%以上）
-                - ✅ CDK構文チェック
+                - ✅ 結合テスト（コンポーネント連携）
+                - ✅ システムテスト（エンドツーエンドAPI）
+                - ✅ CDK構文チェック（本番環境設定）
 
                 **確認事項：**
-                - コードの品質と可読性
-                - テストカバレッジの妥当性
-                - 設計の妥当性`
+                - 変更内容の妥当性
+                - 本番環境への影響範囲
+                - デプロイタイミングの適切性`
               });
             } else {
               // レビュワーが設定されていない場合
@@ -121,14 +188,21 @@ jobs:
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: `✅ **単体テストが成功しました！**
+                body: `✅ **全テスト（単体・結合・システム）が成功しました！**
 
-                **コードレビューの準備が完了しています。**
+                **本番デプロイの準備が完了しています。**
 
-                💡 プルリクエスト画面でレビュワーを追加すると、より効果的なレビューが可能です。
+                ⚠️ レビュワーが設定されていません。プルリクエスト画面でレビュワーを追加してください。
 
                 **テスト結果：**
                 - ✅ 単体テスト（カバレッジ80%以上）
-                - ✅ CDK構文チェック`
+                - ✅ 結合テスト（コンポーネント連携）
+                - ✅ システムテスト（エンドツーエンドAPI）
+                - ✅ CDK構文チェック（本番環境設定）
+
+                **確認事項：**
+                - 変更内容の妥当性
+                - 本番環境への影響範囲
+                - デプロイタイミングの適切性`
               });
             }
