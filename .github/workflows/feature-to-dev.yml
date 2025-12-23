@@ -75,42 +75,60 @@ jobs:
     if: success()
     
     steps:
-      - name: Request review
+      - name: Notify existing reviewers
         uses: actions/github-script@v7
         with:
           script: |
-            // 利用可能なレビュワーのリスト（チームメンバーのGitHubユーザー名を追加してください）
-            const allReviewers = ['team-member-1', 'team-member-2']; // 実際のチームメンバーに変更
-            
-            // プルリクエスト作成者を取得
+            // プルリクエスト情報を取得
             const { data: pullRequest } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number
             });
             
-            // 作成者以外のレビュワーをフィルタリング
-            const availableReviewers = allReviewers.filter(reviewer => reviewer !== pullRequest.user.login);
+            // 既存のレビュワーを取得
+            const existingReviewers = pullRequest.requested_reviewers || [];
+            const existingTeamReviewers = pullRequest.requested_teams || [];
             
-            if (availableReviewers.length > 0) {
-              await github.rest.pulls.requestReviewers({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: context.issue.number,
-                reviewers: availableReviewers
-              });
+            if (existingReviewers.length > 0 || existingTeamReviewers.length > 0) {
+              // 既存のレビュワーがいる場合、通知コメントを投稿
+              const reviewerMentions = existingReviewers.map(reviewer => `@${reviewer.login}`);
+              const teamMentions = existingTeamReviewers.map(team => `@${context.repo.owner}/${team.slug}`);
+              const allMentions = [...reviewerMentions, ...teamMentions];
               
-              github.rest.issues.createComment({
+              await github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: `🔍 レビュー依頼を送信しました: @${availableReviewers.join(', @')}`
+                body: `✅ **単体テストが成功しました！**
+
+                **コードレビューの準備が完了しています。**
+
+                ${allMentions.join(' ')} レビューをお願いします。
+
+                **テスト結果：**
+                - ✅ 単体テスト（カバレッジ80%以上）
+                - ✅ CDK構文チェック
+
+                **確認事項：**
+                - コードの品質と可読性
+                - テストカバレッジの妥当性
+                - 設計の妥当性`
               });
             } else {
-              github.rest.issues.createComment({
+              // レビュワーが設定されていない場合
+              await github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: '⚠️ 利用可能なレビュワーがいません。手動でレビュワーを指定してください。'
+                body: `✅ **単体テストが成功しました！**
+
+                **コードレビューの準備が完了しています。**
+
+                💡 プルリクエスト画面でレビュワーを追加すると、より効果的なレビューが可能です。
+
+                **テスト結果：**
+                - ✅ 単体テスト（カバレッジ80%以上）
+                - ✅ CDK構文チェック`
               });
             }
